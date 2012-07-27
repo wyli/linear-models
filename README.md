@@ -1,4 +1,6 @@
 ### linear models demonstration
-implemented
-    - perceptron model ( binary classification )
-	<img src="https://github.com/wyli/linear-models/raw/master/pla.png">
+Implemented
+-    perceptron model ( binary classification )
+<img src="https://github.com/wyli/linear-models/raw/master/pla.png">
+-    linear regression ( square errors )
+<img src="https://github.com/wyli/linear-models/raw/master/lra.png">
