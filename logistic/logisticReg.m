@@ -1,7 +1,7 @@
 function W = logisticReg(samples, targets)
 figure1 = figure;
 % set rate
-rate = 0.4;
+rate = 0.3;
 
 % adding bias components
 X = [ones(1, size(samples, 2)); samples];
@@ -10,14 +10,14 @@ X = [ones(1, size(samples, 2)); samples];
 W = rand(1, 3);
 grad = [1 1 1];
 
-while sum(grad.^2) > 0.0004
+while sum(grad.^2) > 0.0002
 
 	% gradient descent
 	WX = W * X;
 	YWX = targets .* WX;
-	YX = repmat(targets, 3, 1).* X;
+	YX = repmat(targets, 3, 1) .* X;
 	allgrad = YX ./ repmat((1+exp(YWX)), 3, 1);
-	grad =sum(allgrad')./(-size(X,2));
+	grad = sum(allgrad') ./ (-size(X,2));
 
 	%update weights
 	W = W - rate * grad;
