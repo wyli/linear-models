@@ -1,12 +1,12 @@
 function networkAlg(samples, groundtruth)
 
 figure1 = figure;
-rate = 0.5;
+rate = .2;
 % adding bias term to samples
 X = [ones(1, size(samples, 2)); samples];
 
 % initial weights
-d = [5 2 1]; % number of cells in each layer
+d = [3 3 1]; % number of cells in each layer
 L = size(d, 2); % number of layers
 W{1} = rand(size(X,1), d(1));
 for l = 2 : L
@@ -14,30 +14,25 @@ for l = 2 : L
 end
 
 index = 0;
-while index < 10000
+while index < 100000
+
 % stochastic gradient descent
 % select a random sample
 n = randsample(size(X,2), 1);
 x = X(:,n);
+
+% init space for all out put and derivatives
 delta = cell(L, 1);
 out   = cell(L, 1);
 
-% calc out
-for l = 1:L
-	for i = 1:d(l)
-		if l == 1
-			out{l}(i,1) = softFunc(W{1}(:,i)' * x(:));
-			continue;
-		end
-		out{l}(i,1) = softFunc(W{l}(:,i)' * out{l-1}(:));
-	end
-end
+% evaluate network output
+out = evalNetwork(x, W);
 
 % backpropgration
 for l = L:-1:1
 	for i = 1:d(l)
 		if l == L
-			delta{l}(i)= W{l}(i,:) * diffSoftFunc(out{l}(1), groundtruth(n));
+			delta{l}(i)= W{l}(i,:) * diffSoftFunc(out{L}(1), groundtruth(n));
 		else
 			sigma = W{l+1}(i,:) * delta{l+1}(:);
 			xout = out{l}(i,1);
@@ -46,6 +41,7 @@ for l = L:-1:1
 	end
 end
 
+% update weights
 for l = 1:L
 	if l == 1
 		W{l} = W{l} - rate * x(:) * delta{l};
@@ -53,13 +49,17 @@ for l = 1:L
 		W{l} = W{l} - rate * out{l-1} * delta{l};
 	end
 end
-index = index + 1;
-if mod(index, 10) == 0
+
+% draw a map of weights
+if mod(index, 400) == 0
 plotAll(figure1, samples, groundtruth, W);
 drawnow;
 end
-end
-end
+% loop index update
+index = index + 1;
+fprintf('%d\n', index);
+end % end of while loop
+end % end of function
 
 function theta = softFunc(s)
 x = exp(s);
@@ -89,33 +89,33 @@ end
 
 function plotArea(figHandle, weights)
 axes1 = axes('parent',figHandle);
-[x1 x2] = meshgrid(-8:12, -8:12);
+[x1 x2] = meshgrid(-8:0.5:12, -8:0.5:12);
 y = zeros(size(x1));
 for i = 1:size(x1, 1)
 	for j = 1:size(x1, 2)
-		x = [x1(i,j);x2(i,j)];
-		y(i,j) = evalNetwork(x, weights);
+		x = [1; x1(i,j);x2(i,j)];
+		[~, r] = evalNetwork(x, weights);
+		if r > 0
+			y(i,j) = 1;
+		else
+			y(i,j) =-1;
+		end
 	end
 end
-contour(x1, x2, y);
+contourf(x1, x2, y, 2);
 hold on;
 end
 
-function y = evalNetwork(x, W)
-x = [1;x];
+function [out, y] = evalNetwork(x, W)
 out = cell(size(W));
 for l = 1:length(W)
 	for i = 1:size(W{l}, 2)
 		if l == 1
-			out{l}(i,1) = softFunc(W{1}(:,i)' * x(:));
-			continue;
+			out{l}(i,1) = softFunc( W{1}(:,i)' * x(:) );
+		else
+			out{l}(i,1) = softFunc( W{l}(:,i)' * out{l-1}(:) );
 		end
-		out{l}(i,1) = softFunc(W{l}(:,i)' * out{l-1}(:));
 	end
 end
-if out{end}(:) > 0
-	y = 1;
-else
-	y = 0;
-end
+y = out{end}(:);
 end
