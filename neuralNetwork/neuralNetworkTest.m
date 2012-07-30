@@ -1,7 +1,7 @@
 clear all; close all;
 % Gaussian a
 numOfA = 600;
-muA = [2, 4];
+muA = [6, 4];
 sigmaA = [3 0;0  4];
 dataA = mvnrnd(muA, sigmaA, numOfA);
 

@@ -1,20 +1,20 @@
 function networkAlg(samples, groundtruth)
 
 figure1 = figure;
-rate = .2;
+rate = .1;
 % adding bias term to samples
 X = [ones(1, size(samples, 2)); samples];
 
 % initial weights
 d = [3 3 1]; % number of cells in each layer
 L = size(d, 2); % number of layers
-W{1} = rand(size(X,1), d(1));
+W{1} = -1 + 2 * rand(size(X,1), d(1));
 for l = 2 : L
 	W{l} = rand(d(l-1), d(l));
 end
 
 index = 0;
-while index < 100000
+while index < 10000000
 
 % stochastic gradient descent
 % select a random sample
@@ -51,7 +51,7 @@ for l = 1:L
 end
 
 % draw a map of weights
-if mod(index, 400) == 0
+if mod(index, 1000) == 0
 plotAll(figure1, samples, groundtruth, W);
 drawnow;
 end
@@ -76,19 +76,18 @@ function plotAll(figHandle, samples, groundtruth, weights)
 axes1 = axes('parent', figHandle);
 xlim(axes1, [-8, 12]);
 ylim(axes1, [-8, 12]);
-hold on;
 plotArea(figHandle, weights);
 hold on;
 plot(samples(1, groundtruth == 1), samples(2, groundtruth==1), '+', ...
 	'Color', [1 0 0], 'linewidth', 2);
 hold on
 plot(samples(1, groundtruth == -1), samples(2, groundtruth==-1), '+',...
-	'Color', [0 0.5 0], 'linewidth', 2);
+	'Color', [0 0 1], 'linewidth', 2);
 hold on;
 end
 
 function plotArea(figHandle, weights)
-axes1 = axes('parent',figHandle);
+
 [x1 x2] = meshgrid(-8:0.5:12, -8:0.5:12);
 y = zeros(size(x1));
 for i = 1:size(x1, 1)
