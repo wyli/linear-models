@@ -1,21 +1,22 @@
 function networkAlg(samples, groundtruth)
 
 figure1 = figure;
-rate = .001;
+rate = .01;
 % adding bias term to samples
 X = [ones(1, size(samples, 2)); samples];
 
 % initial weights
-d = [3 3 3 3 1]; % number of cells in each layer
+d = [4 3 1]; % number of cells in each layer
 L = size(d, 2); % number of layers
-W{1} = -0.5 + rand(size(X,1), d(1));
-for l = 2 : L
-	W{l} = rand(d(l-1), d(l));
+W{1} = -0.5 + rand(size(X,1), d(1)-1);
+for l = 2 : L-1
+	W{l} =-0.5 + rand(d(l-1), d(l)-1);
 end
+W{L} = -0.5 + rand(d(L-1), 1);
 
 index = 1;
 errornum = 16
-while errornum > 15
+while errornum > 6
 
 % stochastic gradient descent
 % select a random sample
@@ -28,34 +29,36 @@ out   = cell(L, 1);
 
 % evaluate network output
 out = evalNetwork(x, W);
-
+out
 % backpropgration
-for l = L:-1:1
-	for i = 1:d(l)
-		if l == L
-			delta{l}(i)= W{l}(i,:) * diffSoftFunc(out{L}(1), groundtruth(n));
+deltaL = diffSoftFunc(out{l}(1), groundtruth(n));
+for l = L-1:-1:1
+	for i = 1:size(out{l},1)
+		if l == L-1 
+			xout = out{l-1}(i);
+			delta{l-1} = (1-xout^2)*sum(deltaL*W{L});
+		elseif l == 1
+			sigma =sum(W{1}*delta{1}(2:end));
+			xout = x(i);
+			delta{l-1}(i, 1) = (1-xout^2) * sigma;
 		else
-			sigma = W{l+1}(i,:) * delta{l+1}(:);
-			xout = out{l}(i,1);
-			delta{l}(i) = (1-xout^2) * sigma;
+			xout = out{l-1}(i);
+			sigma = sum(W{l}*delta{l}(2:end)');
+			delta{l-1}(i, 1) = (1-xout^2) * sigma;
 		end
 	end
 end
-
+delta
+W
 % update weights
 for l = 1:L
 	if l == 1
-		W{l} = W{l} - rate * x(:) * delta{l};
+		W{l} = W{l} - rate * x(:) * delta{l}';
 	else
 		W{l} = W{l} - rate * out{l-1} * delta{l};
 	end
 end
 
-% draw a map of weights
-if errornum < 100
-    plotAll(figure1, samples, groundtruth, W);
-    drawnow;
-end
 
 % loop index update
 index = index + 1;
@@ -68,7 +71,15 @@ for t = 1:size(X, 2)
 end
 result = result > 0;
 result = result*2 - 1;
-errornum = sum((result'-groundtruth)~=0)
+errornum1 = sum((result'-groundtruth)~=0)
+
+% draw a map of weights
+%if errornum < 100
+if errornum1 < errornum
+    plotAll(figure1, samples, groundtruth, W);
+    drawnow;
+	errornum = errornum1;
+end
 
 end % end of while loop
 end % end of function
@@ -118,9 +129,11 @@ out = cell(size(W));
 for l = 1:length(W)
 	for i = 1:size(W{l}, 2)
 		if l == 1
-			out{l}(i,1) = softFunc( W{1}(:,i)' * x(:) );
+			out{l}(i+1,1) = softFunc( x(:)' * W{1}(:,i) );
+		elseif l == length(W)
+			out{l}(i,1) = softFunc( out{l-1}(:)' * W{l}(:,i)  );
 		else
-			out{l}(i,1) = softFunc( W{l}(:,i)' * out{l-1}(:) );
+			out{l}(i+1,1) = softFunc( out{l-1}(:)' * W{l}(:,i)  );
 		end
 	end
 end
