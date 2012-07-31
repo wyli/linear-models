@@ -1,7 +1,7 @@
 function SGD(samples, groundtruth)
 
 figure1 = figure;
-rate = .0008;
+rate = .001;
 % adding bias term to samples
 X = [ones(1, size(samples, 2)); samples];
 
@@ -42,10 +42,10 @@ for l = L:-1:1
 		else
 			sigma = W{l}(i,:)*delta{l+1}(2:end);
 		end
-		xout = out{l}(i);
-		delta{l}(i,1) = (1-xout^2) * sigma;
+		delta{l}(i,1) = (1-out{l}(i)^2) * sigma;
 	end
 end
+
 % update weights
 for l = 1:L-1
 	W{l} = W{l} - rate * out{l} * delta{l+1}(2:end)';
@@ -79,9 +79,7 @@ end % end of while loop
 end % end of function
 
 function theta = softFunc(s)
-x = exp(s);
-y = exp(-s);
-theta = (x - y) ./ (x + y);
+	theta = (exp(s)- exp(-s)) ./ ( exp(s)+ exp(-s));
 end
 
 function error = diffSoftFunc(s, y)
@@ -122,6 +120,7 @@ function [out, y] = evalNetwork(x, W)
 out = cell(size(W, 2)+1, 1); % output of layers
 out{1,1} = x(:); % the input is used as first output
 for l = 2:size(out, 1) % layers loop
+	out{l}(1,1)  = 1;
 	for i = 1:size(W{l-1}, 2) % nodes loop
 
 		if l == size(out,1);  % final layer
@@ -130,7 +129,6 @@ for l = 2:size(out, 1) % layers loop
 		else  % hidden layers
 
 			out{l}(i+1,1) = softFunc( out{l-1, 1}' * W{l-1}(:,i) );
-			out{l}(1,1)  = 1;
 		end
 	end
 end
