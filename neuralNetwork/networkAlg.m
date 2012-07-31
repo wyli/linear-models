@@ -15,7 +15,7 @@ end
 W{L} = -0.5 + rand(d(L-1), 1);
 
 index = 1;
-errornum = 16
+errornum = 50
 while errornum > 6
 
 % stochastic gradient descent
