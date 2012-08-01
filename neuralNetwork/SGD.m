@@ -1,12 +1,12 @@
 function SGD(samples, groundtruth)
 
 figure1 = figure;
-rate = .001;
+rate = .01;
 % adding bias term to samples
 X = [ones(1, size(samples, 2)); samples];
 
 % initial weights
-d = [15 15 1]; % number of cells in each layer
+d = [45 45 1]; % number of cells in each layer
 L = size(d, 2); % number of layers
 %  input layer
 W{1} = -0.5 + rand(size(X,1), d(1)-1);
@@ -18,7 +18,7 @@ end
 W{L} = -0.5 + rand(d(L-1), 1);
 
 index = 1;
-errornum = 50
+errornum = 200
 while errornum > 5
 
 % stochastic gradient descent
