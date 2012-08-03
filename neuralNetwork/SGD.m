@@ -108,7 +108,7 @@ for i = 1:size(x1, 1)
 		if r > 0
 			y(i,j) = r;
 		else
-			y(i,j) =r;
+			y(i,j) = r;
 		end
 	end
 end
