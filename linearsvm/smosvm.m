@@ -2,6 +2,7 @@ function smosvm(sample, target)
 
 % Initial struct  
 smo = struct;
+smo.b = 0;
 smo.C = 0.1;
 smo.tol = 0.001;
 smo.numChanged = 0;
@@ -37,7 +38,7 @@ function f = examineExample(smo, i, sample, target);
 x2 = sample(:,i);
 y2 = target(i);
 alph2 = smo.alpha(i);
-smo.Error(i) = (smo.W(:,i)' * x2 - smo.b(i)) - y2;
+smo.Error(i) = findCachedError(i);
 r2 = Error(i) * y2;
 if ((r2 < -smo.tol && alph2 < smo.C) ||...
     (r2 > smo.tol && alph2 > 0))
@@ -75,8 +76,8 @@ x1 = sample(i1);
 y1 = target(i1);
 x2 = sample(i2);
 y2 = target(i2);
-smo.Error(i1) = (smo.W(:,i1)' * x1 - smo.b(i)) - y1;
-smo.Error(i2) = (smo.W(:,i2)' * x2 - smo.b(i)) - y2;
+smo.Error(i1) = findCachedError(i1);
+smo.Error(i2) = findCachedError(i2);
 s = y1*y2;
 if y1 ~= y2
     L = max(0, alph2 - alph1);
@@ -110,12 +111,28 @@ elseif
         a2 = alph2;
     end
 end
+
 if abs(a2 - alph2) < smo.epsilon * (a2 + alph2 + epsilon)
     return 0;
 end
+
 a1 = alph1 + s * (alph2 - a2);
-smo.b = smo.Error(i1) + y1*(a1 - alph1)*k11 + y2*(a2 - alph2)*k12 + smo.b;
+b1 = smo.Error(i1) + ...
+    y1 * (a1 - alph1) * k11 + y2 * (a2 - alph2) * k12 + smo.b;
+b2 = smo.Error(i2) + ...
+    y1 * (a1 - alph1) * k12 + y2 * (a2 - alph2) * k22 + smo.b;
+
+if a1 > 0 && a1 < C
+    smo.b = b1;
+elseif a2 > 0 && a2 < C
+    smo.b = b2;
+else
+    smo.b = (b1 + b2) / 2;
+end
 % update weights?
+smo.alph(i1) = a1;
+smo.alph(i2) = a2;
+updateError(smo, sample, target);
 end
 
 
@@ -129,16 +146,40 @@ end
 end
 
 function b = equal(a, b)
+a = double(a);
+b = doubale(b);
+return (a < b + 0.001) && (a > b - 0.001);
 end
 
-function e = findCache(smo, i, sample, target)
+function e = findCachedError(smo, i)
+return smo.Error(i);
 end
 
 function k = kernelFunc(x1, x2)
 k = x1' * x2;
 end
 
-function obj = evalObjFunc(smo, sample, target, i, alph)
+function obj = evalObjFunc(smo, sample, target, i, alphi)
+alph = smo.alph;
+alph(i) = alphi;
+Q = zeros(size(target, 1));
+for m = 1:size(target, 1)
+    for n = 1:size(target, 1)
+        sumLagrange = target(m) * target(n)...
+             * alph(m) * alph(n) * kernelFunc(sample(:, m) * sample(:, n));
+    end
+end
+obj = sumLagrange * 0.5 + sum(alph);
+end
+
+function error = updateError(smo, sample, target)
+weights = zeros(size(sample, 1), 1);
+for i = 1:size(target, 1)
+    weights = weights + y(i) * alph(i) * sample(i);
+end
+for i = 1:size(sample, 2)
+    smo.Error(i) = weights' * sample(i) - smo.b;
+end
 end
 % todo
 % equal
