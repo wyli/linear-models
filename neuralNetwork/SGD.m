@@ -6,7 +6,7 @@ rate = .01;
 X = [ones(1, size(samples, 2)); samples];
 
 % initial weights
-d = [45 45 1]; % number of cells in each layer
+d = [150 150 1]; % number of cells in each layer
 L = size(d, 2); % number of layers
 %  input layer
 W{1} = -0.5 + rand(size(X,1), d(1)-1);
@@ -15,10 +15,10 @@ for l = 2 : L-1
 	W{l} =-0.5 + rand(d(l-1), d(l)-1);
 end
 % output layer
-W{L} = -0.5 + rand(d(L-1), 1);
+W{L} = -0.5 + 2*rand(d(L-1), 1);
 
 index = 1;
-errornum = 200
+errornum = 400
 while errornum > 5
 
 % stochastic gradient descent
@@ -65,7 +65,7 @@ end
 result = result > 0;
 result = result*2 - 1;
 errorCurr = sum((result'-groundtruth)~=0);
-fprintf('%d %d\n', index, errorCurr);
+fprintf('%d %d %d\n', index, errorCurr, errornum);
 
 % draw a map of weights
 %if errornum < 100
@@ -89,8 +89,8 @@ end
 
 function plotAll(figHandle, samples, groundtruth, weights)
 axes1 = axes('parent', figHandle);
-xlim(axes1, [-8, 12]);
-ylim(axes1, [-8, 12]);
+xlim(axes1, [0, 1]);
+ylim(axes1, [0.4, 1]);
 hold on;
 plot(samples(1, groundtruth == 1), samples(2, groundtruth==1), '+', ...
 	'Color', [1 0 0], 'linewidth', 2);
@@ -99,7 +99,7 @@ plot(samples(1, groundtruth == -1), samples(2, groundtruth==-1), '+',...
 	'Color', [0 0.75 0], 'linewidth', 2);
 hold on;
 
-[x1 x2] = meshgrid(-8:0.5:12, -8:0.5:12);
+[x1 x2] = meshgrid(0:0.05:1, 0:0.05:1);
 y = zeros(size(x1));
 for i = 1:size(x1, 1)
 	for j = 1:size(x1, 2)

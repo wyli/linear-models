@@ -1,4 +1,4 @@
-clear all; close all;
+%clear all; close all;
 % Gaussian a
 numOfA = 70;
 muA = [7, 7];
@@ -44,8 +44,8 @@ dataH = mvnrnd(muH, sigmaH, numOfH);
 %samples = [dataA; dataB; dataC; dataD]';
 %targets = [ones(numOfA+numOfB, 1); -1*ones(numOfC+numOfD,1)];
 
-samples = [dataA; dataB; dataH; dataD; dataF; dataC;dataG]';
-targets = [ones(numOfA+numOfB+numOfD+numOfF+numOfH, 1); -1*ones(numOfC+numOfG,1)];
+%samples = [dataA; dataB; dataH; dataD; dataF; dataC;dataG]';
+%targets = [ones(numOfA+numOfB+numOfD+numOfF+numOfH, 1); -1*ones(numOfC+numOfG,1)];
 %plot(samples(1, targets==1), samples(2, targets==1), '+',...
 %	'Color', [1 0 0], 'linewidth', 1.8);
 %hold on;
@@ -53,5 +53,7 @@ targets = [ones(numOfA+numOfB+numOfD+numOfF+numOfH, 1); -1*ones(numOfC+numOfG,1)
 %	'Color', [0 0.5 0], 'linewidth', 1.8);
 
 % neural network algorithm
+samples = X';
+targets = (y>0)*2 -1;
 SGD(samples, targets);
 
