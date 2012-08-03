@@ -5,34 +5,33 @@ smo = struct;
 smo.b = 0;
 smo.C = 0.1;
 smo.tol = 0.001;
-smo.numChanged = 0;
-smo.examineAll = 1;
 smo.Error = zeros(size(target));
 smo.alpha = zeros(size(target));
 
-while smo.numChanged > 0 || smo.examineAll
-    smo.numChanged = 0;
-    if smo.examineAll % check all
+numChanged = 0;
+examineAll = 1;
+while numChanged > 0 | examineAll
+    if examineAll % check all
         for i = 1:size(sample, 2)
-            smo.numChanged = smo.numChanged + ...
+            numChanged = numChanged + ...
                 examineExample(smo, i, sample, target);
         end
     else
         for i = 1:size(sample, 2) % check non-bound examples
-            if ~equal(smo.alpha(i), 0) && ~equal(smo.alpha(i), smo.C)
-                smo.numChanged = smo.numChanged + ...
+            if isBound(smo.alpha(i), smo.C)
+                numChanged = numChanged + ...
                     examineExample(smo, i, sample, target);
             end
         end
     end
 
-    if smo.examineAll == 1
-        smo.examineAll = 0;
-    elseif smo.numChanged == 0
-        smo.examineAll = 1;
+    if examineAll == 1
+        examineAll = 0;
+    elseif numChanged == 0
+        examineAll = 1;
     end
-end
-fprintf('Done!\n');
+
+   end
 end
 
 function f = examineExample(smo, i, sample, target);
@@ -41,16 +40,16 @@ x2 = sample(:,i);
 y2 = target(i);
 alph2 = smo.alpha(i);
 r2 = smo.Error(i) * y2;
-if ((r2 < -smo.tol && alph2 < smo.C) ||...
-    (r2 > smo.tol && alph2 > 0))
-    if (sum(~equal(alpha, 0) && ~equal(alpha, smo.C)) > 1)
+if ((r2 < -smo.tol & alph2 < smo.C) |...
+    (r2 > smo.tol & alph2 > 0))
+    if (sum(isBound(alpha, smo.C)) > 1)
         j = findMaxStep(smo, i);
         if takeStep(smo, j, i, sample, target)
             return
         end
     end
     for ii = 1:size(sample, 2)
-        if ~equal(alpha(ii), 0) && ~equal(alpha(ii), smo.C)
+        if isBound(alpha(ii), smo.C)
             if takeStep(smo, ii, i, sample, target)
                 return
             end
@@ -123,9 +122,9 @@ b1 = smo.Error(i1) + ...
 b2 = smo.Error(i2) + ...
     y1 * (a1 - alph1) * k12 + y2 * (a2 - alph2) * k22 + smo.b;
 
-if a1 > 0 && a1 < C
+if a1 > 0 & a1 < C
     smo.b = b1;
-elseif a2 > 0 && a2 < C
+elseif a2 > 0 & a2 < C
     smo.b = b2;
 else
     smo.b = (b1 + b2) / 2;
@@ -148,39 +147,49 @@ else
 end
 end
 
-function flag = equal(a, b)
-a = double(a);
-b = double(b);
-flag = (a < b + 0.001) && (a > b - 0.001);
-return
-end
-
 function k = kernelFunc(x1, x2)
+% simple kernel: dot product
 k = x1' * x2;
 end
 
 function obj = evalObjFunc(smo, sample, target, i, alphi)
+% evaluate object function (1/2)*\sigma(yyaaK(xx)) + sum(a) with updated alpha
 alph = smo.alph;
 alph(i) = alphi;
 Q = zeros(size(target, 1));
 for m = 1:size(target, 1)
     for n = 1:size(target, 1)
-        sumLagrange = target(m) * target(n)...
-             * alph(m) * alph(n) * kernelFunc(sample(:, m) * sample(:, n));
+        Q(m,n) = target(m) * target(n) *...
+            kernelFunc(sample(:, m) * sample(:, n));
     end
 end
-obj = sumLagrange * 0.5 + sum(alph);
+obj = alph' * Q * alph * 0.5 + sum(alph);
 end
 
+
 function error = updateError(smo, sample, target)
+% evaluate errors (first evaluate weights)
+% TODO: vectorise...
 weights = zeros(size(sample, 1), 1);
 for i = 1:size(target, 1)
-    weights = weights + y(i) * alph(i) * sample(i);
+    weights = weights + y(i) * alph(i) * sample(:, i);
 end
 for i = 1:size(sample, 2)
-    smo.Error(i) = weights' * sample(i) - smo.b;
+    smo.Error(i) = weights' * sample(:,i) - smo.b;
 end
 end
-% todo
-% equal
-% 
+
+
+function flag = equal(a, b)
+% b must be a number and a must be a vector
+flag = (a < (b + eps)) & (a > (b - eps));
+end
+
+
+
+function flags = isBound(a, C)
+% check whether a is on bound, either 0 or C 
+isZero = equal(a, 0);
+isC = equal(a, C);
+flags = isZero | isC;
+end
