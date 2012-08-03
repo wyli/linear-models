@@ -19,7 +19,7 @@ while smo.numChanged > 0 || smo.examineAll
         end
     else
         for i = 1:size(sample, 2) % check non-bound examples
-            if ~equal(alpha(i), 0) && ~equal(alpha(i), smo.C)
+            if ~equal(smo.alpha(i), 0) && ~equal(smo.alpha(i), smo.C)
                 smo.numChanged = smo.numChanged + ...
                     examineExample(smo, i, sample, target);
             end
@@ -36,39 +36,41 @@ fprintf('Done!\n');
 end
 
 function f = examineExample(smo, i, sample, target);
+f = 1;
 x2 = sample(:,i);
 y2 = target(i);
 alph2 = smo.alpha(i);
-smo.Error(i) = findCachedError(i);
-r2 = Error(i) * y2;
+r2 = smo.Error(i) * y2;
 if ((r2 < -smo.tol && alph2 < smo.C) ||...
     (r2 > smo.tol && alph2 > 0))
     if (sum(~equal(alpha, 0) && ~equal(alpha, smo.C)) > 1)
         j = findMaxStep(smo, i);
         if takeStep(smo, j, i, sample, target)
-            return 1;
+            return
         end
     end
     for ii = 1:size(sample, 2)
         if ~equal(alpha(ii), 0) && ~equal(alpha(ii), smo.C)
             if takeStep(smo, ii, i, sample, target)
-                return 1;
+                return
             end
         end
     end
     for ii = 1:size(sample, 2)
         if takeStep(smo, ii, i, sample, target)
-            return 1;
+            return
         end
     end
-return 0;
+f = 0;
+return
 end
 end
 
 
 function g = takeStep(smo, i1, i2, sample, target)
+g = 0;
 if i1 == i2
-    return 0;
+    return
 end
 
 alph1 = smo.alpha(i1);
@@ -77,8 +79,6 @@ x1 = sample(i1);
 y1 = target(i1);
 x2 = sample(i2);
 y2 = target(i2);
-smo.Error(i1) = findCachedError(i1);
-smo.Error(i2) = findCachedError(i2);
 s = y1*y2;
 if y1 ~= y2
     L = max(0, alph2 - alph1);
@@ -88,20 +88,20 @@ else
     H = min(smo.C, alph2 + alph1);
 end
 if L == H
-    return 0;
+    return
 end
 k11 = kernelFunc(x1, x1);
 k12 = kernelFunc(x1, x2);
 k22 = kernelFunc(x2, x2);
 eta = k11 + k22 - 2*k12
 if eta > 0
-    a2 = alph2 + y2*(smo.Error(i1) - smo.Error(i2) / eta;
+    a2 = alph2 + y2*(smo.Error(i1) - smo.Error(i2)) / eta;
     if a2 < L
         a2 = L;
     elseif a2 > H
         a2 = H;
     end
-elseif
+else 
     LObj = evalObjFunc(smo, sample, target, i2, L);
     HObj = evalObjFunc(smo, sample, target, i2, H);
     if LObj < HObj - smo.epsilon
@@ -114,7 +114,7 @@ elseif
 end
 
 if abs(a2 - alph2) < smo.epsilon * (a2 + alph2 + epsilon)
-    return 0;
+    return
 end
 
 a1 = alph1 + s * (alph2 - a2);
@@ -134,6 +134,8 @@ end
 smo.alph(i1) = a1;
 smo.alph(i2) = a2;
 updateError(smo, sample, target);
+g = 1;
+return
 end
 
 
@@ -146,14 +148,11 @@ else
 end
 end
 
-function b = equal(a, b)
+function flag = equal(a, b)
 a = double(a);
-b = doubale(b);
-return (a < b + 0.001) && (a > b - 0.001);
-end
-
-function e = findCachedError(smo, i)
-return smo.Error(i);
+b = double(b);
+flag = (a < b + 0.001) && (a > b - 0.001);
+return
 end
 
 function k = kernelFunc(x1, x2)
