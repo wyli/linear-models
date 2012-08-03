@@ -32,6 +32,7 @@ while smo.numChanged > 0 || smo.examineAll
         smo.examineAll = 1;
     end
 end
+fprintf('Done!\n');
 end
 
 function f = examineExample(smo, i, sample, target);
