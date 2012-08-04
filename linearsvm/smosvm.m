@@ -3,11 +3,12 @@ global smo
 % Initial struct  
 smo = struct;
 smo.b = 0;
-smo.C = 0.1;
+smo.C = .1;
 smo.tol = 0.001;
 smo.epsilon = 0.001;
-smo.alpha = rand(size(target));
-smo.Error = updateError(smo, sample, target);
+smo.alpha = zeros(size(target));
+smo.Error = -target;
+
 numChanged = 0;
 examineAll = 1;
 while numChanged > 0 || examineAll
@@ -54,7 +55,7 @@ if ((r2 < -smo.tol && alph2 < smo.C) ||...
         end
     end
     for ii = 1:size(sample, 2)
-        if isBound(smo.alpha(ii), smo.C)
+        if ~isBound(smo.alpha(ii), smo.C)
             if takeStep(ii, i, sample, target)
                 return
             end
@@ -105,8 +106,12 @@ if eta > 0
         a2 = H;
     end
 else 
-    LObj = evalObjFunc(smo, sample, target, i2, L);
-    HObj = evalObjFunc(smo, sample, target, i2, H);
+    f1 = y1 * (smo.Error(i1) + smo.b) - alph1 * k11 - s * alph2 * k12;
+    f2 = y2 * (smo.Error(i2) + smo.b) - s * alph1 * k12 - alph2 * k22;
+    L1 = alph1 + s * (alph2 - L);
+    H1 = alph1 + s * (alph2 - H);
+    LObj = L1*f1 + L*f2 + .5*(L1^2)*k11 + .5*(L^2)*k22 + s*L*L1*k12;
+    HObj = H1*f1 + H*f2 + .5*(H1^2)*k22 + .5*(H^2)*k22 + s*H*H1*k12;
     if LObj < HObj - smo.epsilon
         a2 = L;
     elseif LObj > HObj + smo.epsilon
@@ -116,16 +121,29 @@ else
     end
 end
 
+if a2 < 0
+    a2 = 0;
+elseif a2 > smo.C
+    a2 = smo.C;
+end
+
 if abs(a2 - alph2) < smo.epsilon * (a2 + alph2 + smo.epsilon)
     return
 end
 
 a1 = alph1 + s * (alph2 - a2);
+if a1 < 0
+    a1 = 0;
+elseif a1 > smo.C
+    a1 = smo.C;
+end
+
 b1 = smo.Error(i1) + ...
     y1 * (a1 - alph1) * k11 + y2 * (a2 - alph2) * k12 + smo.b;
 b2 = smo.Error(i2) + ...
     y1 * (a1 - alph1) * k12 + y2 * (a2 - alph2) * k22 + smo.b;
 
+oldB = smo.b;
 if a1 > 0 && a1 < smo.C
     smo.b = b1;
 elseif a2 > 0 && a2 < smo.C
@@ -133,9 +151,15 @@ elseif a2 > 0 && a2 < smo.C
 else
     smo.b = (b1 + b2) / 2;
 end
+for i = 1:size(sample, 2)
+    k1i = kernelFunc(sample(:,i), sample(:,i1));
+    k2i = kernelFunc(sample(:,i), sample(:,i2));
+    smo.Error(i) = smo.Error(i) + y1 * (a1 - alph1) * k1i + ...
+        y2 * (a2 - alph2) * k2i - smo.b + oldB;
+end
+smo.Error
 smo.alph(i1) = a1;
 smo.alph(i2) = a2;
-smo.Error = updateError(smo, sample, target);
 g = 1;
 end
 
@@ -170,15 +194,14 @@ end
 obj = alph' * Q * alph * 0.5 + sum(alph);
 end
 
-function error = updateError(smo, sample, target)
+function error = updateError(i1, i2, smo, sample, target)
 % evaluate errors (first evaluate weights)
 % TODO: vectorise...
 weights = zeros(size(sample, 1), 1);
-for i = 1:size(target, 1)
-    weights = weights + target(i) * smo.alpha(i) * sample(:, i);
-end
 for i = 1:size(sample, 2)
-    error(i, 1) = (weights' * sample(:,i) - smo.b) - target(i);
+    k1i = kernelFunc(sample(:,i), sample(:,i1));
+    k2i = kernelFunc(sample(:,i), sample(:,i2));
+    smo.Error(i) = smo.Error(i) + target(i1) * (a1 - alpha1)
 end
 end
 
