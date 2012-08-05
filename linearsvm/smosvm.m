@@ -8,12 +8,6 @@ smo.tol = 0.001;
 smo.epsilon = 0.001;
 smo.alpha = zeros(size(target));
 smo.Error = zeros(size(target));
-for index = 1:size(target, 1)
-    if ~isBound(smo.alpha(index), smo.C)
-        smo.Error(index, 1) = ...
-            evalSvm(smo, sample(:, index), sample, target) - target(index);
-    end
-end
 numChanged = 0;
 examineAll = 1;
 while (numChanged > 0 || examineAll)
@@ -38,6 +32,9 @@ while (numChanged > 0 || examineAll)
         examineAll = 1;
     end
 end
+for x = 1:size(target)
+    errorOutput = evalSvm(smo, sample(:, x), sample, target) - target(x);
+end
 a = smo;
 end
 
@@ -48,7 +45,7 @@ alpha2 = smo.alpha(i2);
 if ~isBound(alpha2, smo.C)
     E2 = smo.Error(i2);
 else
-    E2 = evalSvm(smo, sample(:, i2), sample, target) - target(i2);
+    E2 = evalSvm(smo, sample(:, i2), sample, target) - y2;
 end
 r2 = E2 * y2;
 % check if alpha2 violates KKT
@@ -61,9 +58,9 @@ if ((r2 < -smo.tol && alpha2 < smo.C) ||...
             return
         end
     end
-    index = randsample(size(sample, 2), size(sample, 2));
-    for ii = 1:size(sample, 2)
-        i1 = index(ii);
+    index = randsample(size(sample, 2), 1);
+    for ii = index:index + size(sample, 2) - 1
+        i1 = mod(ii, size(sample, 2)-1) + 1;
         if ~isBound(smo.alpha(i1), smo.C)
             if takeStep(i1, i2, sample, target)
                 f = 1;
@@ -71,9 +68,9 @@ if ((r2 < -smo.tol && alpha2 < smo.C) ||...
             end
         end
     end
-    index = randsample(size(sample, 2), size(sample, 2));
-    for ii = 1:size(sample, 2)
-        i1 = index(ii);
+    index = randsample(size(sample, 2), 1);
+    for ii = index:(index + size(sample, 2) - 1)
+        i1 = mod(ii, size(sample, 2)-1) + 1;
         if takeStep(i1, i2, sample, target)
             f = 1;
             return
@@ -100,16 +97,16 @@ y2 = target(i2);
 if ~isBound(alpha1, smo.C)
     E1 = smo.Error(i1);
 else
-    E1 = evalSvm(smo, sample(:, i1), sample, target) - target(i1);
+    E1 = evalSvm(smo, sample(:, i1), sample, target) - y1;
 end
 
 if ~isBound(alpha2, smo.C)
     E2 = smo.Error(i2);
 else
-    E2 = evalSvm(smo, sample(:, i2), sample, target) - target(i2);
+    E2 = evalSvm(smo, sample(:, i2), sample, target) - y2;
 end
 s = y1*y2;
-if y1 ~= y2
+if y1 ~= y2 
     L = max(0, alpha2 - alpha1);
     H = min(smo.C, smo.C + alpha2 - alpha1);
 else
@@ -123,28 +120,39 @@ end
 k11 = kernelFunc(x1, x1);
 k12 = kernelFunc(x1, x2);
 k22 = kernelFunc(x2, x2);
-eta = k11 + k22 - 2 * k12;
-if eta > 0
-    a2 = alpha2 + y2 * (E1 - E2) / eta;
+eta = 2 * k12 - k11 - k22;
+if eta < 0
+    a2 = alpha2 - y2 * (E1 - E2) / eta;
     if a2 < L
         a2 = L;
     elseif a2 > H
         a2 = H;
     end
 else 
-    f1 = y1 * (E1 + smo.b) - alpha1 * k11 - s * alpha2 * k12;
-    f2 = y2 * (E2 + smo.b) - s * alpha1 * k12 - alpha2 * k22;
-    L1 = alpha1 + s * (alpha2 - L);
-    H1 = alpha1 + s * (alpha2 - H);
-    LObj = L1*f1 + L*f2 + .5*L1*L1*k11 + .5*L*L*k22 + s*L*L1*k12;
-    HObj = H1*f1 + H*f2 + .5*H1*H1*k11 + .5*H*H*k22 + s*H*H1*k12;
-    if (LObj < HObj - smo.epsilon)
+%    f1 = y1 * (E1 + smo.b) - alpha1 * k11 - s * alpha2 * k12;
+%    f2 = y2 * (E2 + smo.b) - s * alpha1 * k12 - alpha2 * k22;
+%    L1 = alpha1 + s * (alpha2 - L);
+%    H1 = alpha1 + s * (alpha2 - H);
+%    LObj = L1*f1 + L*f2 + .5*L1*L1*k11 + .5*L*L*k22 + s*L*L1*k12;
+%    HObj = H1*f1 + H*f2 + .5*H1*H1*k11 + .5*H*H*k22 + s*H*H1*k12;
+    c1 = eta/2;
+    c2 = y2 * (E1 - E2) - eta * alpha2;
+    LObj = c1 * L * L + c2 * L;
+    HObj = c1 * H * H + c2 * H;
+
+    if (LObj > HObj + smo.epsilon)
         a2 = L;
-    elseif (LObj > HObj + smo.epsilon)
+    elseif (LObj < HObj - smo.epsilon)
         a2 = H;
     else
         a2 = alpha2;
     end
+end
+
+if a2 < 1e-8
+    a2 = 0;
+elseif a2 > smo.C - 1e-8
+    a2 = smo.C;
 end
 
 if (abs(a2 - alpha2) < smo.epsilon * (a2 + alpha2 + smo.epsilon))
@@ -166,7 +174,7 @@ else
     smo.b = (b1 + b2) * 0.5;
 end
 
-for i = size(sample, 2)
+for i = 1:size(sample, 2)
     if ~isBound(smo.alpha(i), smo.C)
         k1i = kernelFunc(x1, sample(:, i));
         k2i = kernelFunc(x2, sample(:, i));
