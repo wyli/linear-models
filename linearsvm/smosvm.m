@@ -1,17 +1,22 @@
-function smo = smosvm(sample, target)
-global smo
+function a = smosvm(sample, target)
+global smo;
 % Initial struct  
 smo = struct;
 smo.b = 0;
-smo.C = .01;
+smo.C = Inf;
 smo.tol = 0.001;
 smo.epsilon = 0.001;
 smo.alpha = zeros(size(target));
-smo.Error = -target;
-
+smo.Error = zeros(size(target));
+for index = 1:size(target, 1)
+    if ~isBound(smo.alpha(index), smo.C)
+        smo.Error(index, 1) = ...
+            evalSvm(smo, sample(:, index), sample, target) - target(index);
+    end
+end
 numChanged = 0;
 examineAll = 1;
-while numChanged > 0 || examineAll
+while (numChanged > 0 || examineAll)
     numChanged = 0;
     if examineAll % check all
         for i = 1:size(sample, 2)
@@ -33,37 +38,43 @@ while numChanged > 0 || examineAll
         examineAll = 1;
     end
 end
+a = smo;
 end
 
-function f = examineExample(i, sample, target)
+function f = examineExample(i2, sample, target)
 global smo
-y2 = target(i);
-alpha2 = smo.alpha(i);
-r2 = smo.Error(i) * y2;
+y2 = target(i2);
+alpha2 = smo.alpha(i2);
+if ~isBound(alpha2, smo.C)
+    E2 = smo.Error(i2);
+else
+    E2 = evalSvm(smo, sample(:, i2), sample, target) - target(i2);
+end
+r2 = E2 * y2;
 % check if alpha2 violates KKT
 if ((r2 < -smo.tol && alpha2 < smo.C) ||...
     (r2 > smo.tol && alpha2 > 0))
     if (sum(~isBound(smo.alpha, smo.C)) > 1)
-        j = findMaxStep(smo, i);
-        if takeStep(j, i, sample, target)
+        i1 = findMaxStep(smo, i2);
+        if takeStep(i1, i2, sample, target)
             f = 1;
             return
         end
     end
-    index = randsample(size(sample,2), size(sample, 2));
+    index = randsample(size(sample, 2), size(sample, 2));
     for ii = 1:size(sample, 2)
-        rndIndex = index(ii);
-        if ~isBound(smo.alpha(rndIndex), smo.C)
-            if takeStep(rndIndex, i, sample, target)
+        i1 = index(ii);
+        if ~isBound(smo.alpha(i1), smo.C)
+            if takeStep(i1, i2, sample, target)
                 f = 1;
                 return
             end
         end
     end
-    index = randsample(size(sample, 2), size(sample,2));
+    index = randsample(size(sample, 2), size(sample, 2));
     for ii = 1:size(sample, 2)
-        rndIndex = index(ii);
-        if takeStep(rndIndex, i, sample, target)
+        i1 = index(ii);
+        if takeStep(i1, i2, sample, target)
             f = 1;
             return
         end
@@ -86,6 +97,17 @@ x1 = sample(:, i1);
 y1 = target(i1);
 x2 = sample(:, i2);
 y2 = target(i2);
+if ~isBound(alpha1, smo.C)
+    E1 = smo.Error(i1);
+else
+    E1 = evalSvm(smo, sample(:, i1), sample, target) - target(i1);
+end
+
+if ~isBound(alpha2, smo.C)
+    E2 = smo.Error(i2);
+else
+    E2 = evalSvm(smo, sample(:, i2), sample, target) - target(i2);
+end
 s = y1*y2;
 if y1 ~= y2
     L = max(0, alpha2 - alpha1);
@@ -101,17 +123,17 @@ end
 k11 = kernelFunc(x1, x1);
 k12 = kernelFunc(x1, x2);
 k22 = kernelFunc(x2, x2);
-eta = k11 + k22 - 2*k12;
+eta = k11 + k22 - 2 * k12;
 if eta > 0
-    a2 = alpha2 + y2 * (smo.Error(i1) - smo.Error(i2)) / eta;
+    a2 = alpha2 + y2 * (E1 - E2) / eta;
     if a2 < L
         a2 = L;
     elseif a2 > H
         a2 = H;
     end
 else 
-    f1 = y1 * (smo.Error(i1) + smo.b) - alpha1 * k11 - s * alpha2 * k12;
-    f2 = y2 * (smo.Error(i2) + smo.b) - s * alpha1 * k12 - alpha2 * k22;
+    f1 = y1 * (E1 + smo.b) - alpha1 * k11 - s * alpha2 * k12;
+    f2 = y2 * (E2 + smo.b) - s * alpha1 * k12 - alpha2 * k22;
     L1 = alpha1 + s * (alpha2 - L);
     H1 = alpha1 + s * (alpha2 - H);
     LObj = L1*f1 + L*f2 + .5*L1*L1*k11 + .5*L*L*k22 + s*L*L1*k12;
@@ -125,29 +147,38 @@ else
     end
 end
 
-if abs(a2 - alpha2) < smo.epsilon * (a2 + alpha2 + smo.epsilon)
+if (abs(a2 - alpha2) < smo.epsilon * (a2 + alpha2 + smo.epsilon))
     g = 0;
     return
 end
 
 a1 = alpha1 + s * (alpha2 - a2);
 
-b1 = smo.Error(i1) + ...
-    y1 * (a1 - alpha1) * k11 + y2 * (a2 - alpha2) * k12 + smo.b;
-b2 = smo.Error(i2) + ...
-    y1 * (a1 - alpha1) * k12 + y2 * (a2 - alpha2) * k22 + smo.b;
+b1 = E1 + y1 * (a1 - alpha1) * k11 + y2 * (a2 - alpha2) * k12 + smo.b;
+b2 = E2 + y1 * (a1 - alpha1) * k12 + y2 * (a2 - alpha2) * k22 + smo.b;
 
 oldB = smo.b;
-if a1 > 0 && a1 < smo.C
+if (a1 > 0 && a1 < smo.C)
     smo.b = b1;
-elseif a2 > 0 && a2 < smo.C
+elseif (a2 > 0 && a2 < smo.C)
     smo.b = b2;
 else
     smo.b = (b1 + b2) * 0.5;
 end
+
+for i = size(sample, 2)
+    if ~isBound(smo.alpha(i), smo.C)
+        k1i = kernelFunc(x1, sample(:, i));
+        k2i = kernelFunc(x2, sample(:, i));
+        smo.Error(i) = smo.Error(i) +...
+             y1 * (a1 - alpha1) * k1i + y2 * (a2 - alpha2) * k2i + oldB - smo.b;
+    end
+end
+smo.Error(i1) = 0;
+smo.Error(i2) = 0;
 smo.alpha(i1) = a1;
 smo.alpha(i2) = a2;
-smo.Error = updateError(smo, sample, target);
+%smo.Error = updateError(smo, sample, target);
 g = 1;
 return
 end
@@ -156,19 +187,10 @@ function j = findMaxStep(smo, i)
 E1 = smo.Error(i);
 % search all non-bound errors
 error = smo.Error(~isBound(smo.alpha, smo.C));
-error(i) = 0; % exclude itself
 if E1 > 0
     [~, j] = min(error);
 else
     [~, j] = max(error);
-end
-end
-
-function error = updateError(smo, sample, target)
-error = zeros(size(target));
-for i = 1:size(sample, 2)
-    out = evalSvm(smo, sample(:, i), sample, target);
-    error(i) = out - target(i);
 end
 end
 

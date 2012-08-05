@@ -1,6 +1,8 @@
-function label = evalSvm(smo, p, samples, targets)
-W = 0;
+function out = evalSvm(smo, p, samples, targets)
+s = 0;
 for i = 1:size(samples, 2);
-    W = W + targets(i) * smo.alpha(i) * samples(:,i);
+    if smo.alpha(i) > 0
+        s = s + targets(i) * smo.alpha(i) * samples(:,i)' * p;
+    end
 end
-label = W' * p - smo.b;
+out = s - smo.b;
