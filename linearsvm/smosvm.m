@@ -129,16 +129,16 @@ if eta < 0
         a2 = H;
     end
 else 
-%    f1 = y1 * (E1 + smo.b) - alpha1 * k11 - s * alpha2 * k12;
-%    f2 = y2 * (E2 + smo.b) - s * alpha1 * k12 - alpha2 * k22;
-%    L1 = alpha1 + s * (alpha2 - L);
-%    H1 = alpha1 + s * (alpha2 - H);
-%    LObj = L1*f1 + L*f2 + .5*L1*L1*k11 + .5*L*L*k22 + s*L*L1*k12;
-%    HObj = H1*f1 + H*f2 + .5*H1*H1*k11 + .5*H*H*k22 + s*H*H1*k12;
-    c1 = eta/2;
-    c2 = y2 * (E1 - E2) - eta * alpha2;
-    LObj = c1 * L * L + c2 * L;
-    HObj = c1 * H * H + c2 * H;
+    f1 = y1 * (E1 + smo.b) - alpha1 * k11 - s * alpha2 * k12;
+    f2 = y2 * (E2 + smo.b) - s * alpha1 * k12 - alpha2 * k22;
+    L1 = alpha1 + s * (alpha2 - L);
+    H1 = alpha1 + s * (alpha2 - H);
+    LObj = L1*f1 + L*f2 + .5*L1*L1*k11 + .5*L*L*k22 + s*L*L1*k12;
+    HObj = H1*f1 + H*f2 + .5*H1*H1*k11 + .5*H*H*k22 + s*H*H1*k12;
+%    c1 = eta/2;
+%    c2 = y2 * (E1 - E2) - eta * alpha2;
+%    LObj = c1 * L * L + c2 * L;
+%    HObj = c1 * H * H + c2 * H;
 
     if (LObj > HObj + smo.epsilon)
         a2 = L;
@@ -186,7 +186,6 @@ smo.Error(i1) = 0;
 smo.Error(i2) = 0;
 smo.alpha(i1) = a1;
 smo.alpha(i2) = a2;
-%smo.Error = updateError(smo, sample, target);
 g = 1;
 return
 end
