@@ -3,7 +3,7 @@ global smo;
 % Initial struct  
 smo = struct;
 smo.b = 0;
-smo.C = Inf;
+smo.C = 1;
 smo.tol = 0.001;
 smo.epsilon = 0.001;
 smo.alpha = zeros(size(target));
@@ -205,8 +205,10 @@ end
 
 function flags = isBound(a, C)
 % check whether a is on bound, either 0 or C 
-isZero = equal(a, 0);
-isC = equal(a, C);
+%isZero = equal(a, 0);
+%isC = equal(a, C);
+isZero = a == 0;
+isC = a == C;
 flags = isZero | isC;
 end
 % EOF
