@@ -32,9 +32,6 @@ while (numChanged > 0 || examineAll)
         examineAll = 1;
     end
 end
-for x = 1:size(target)
-    errorOutput = evalSvm(smo, sample(:, x), sample, target) - target(x);
-end
 a = smo;
 end
 
@@ -199,11 +196,6 @@ if E1 > 0
 else
     [~, j] = max(error);
 end
-end
-
-function k = kernelFunc(x1, x2)
-% simple kernel: dot product
-k = x1' * x2;
 end
 
 function flag = equal(a, b)
