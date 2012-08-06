@@ -3,7 +3,7 @@ global smo;
 % Initial struct  
 smo = struct;
 smo.b = 0;
-smo.C = 1;
+smo.C = 1000;
 smo.tol = 0.001;
 smo.epsilon = 0.001;
 smo.alpha = zeros(size(target));
