@@ -53,10 +53,10 @@ clear dataA dataB dataH dataD dataF dataC dataG;
 %X = X';
 %samples = X(:,index);
 %targets = y(index,1)*2 -1;
-index = randsample(size(targets, 1), 450, 1);
-%X = X';
-samples = samples(:,index);
-targets = targets(index,1);
+% index = randsample(size(targets, 1), 450, 1);
+% %X = X';
+% samples = samples(:,index);
+% targets = targets(index,1);
 % training svm
 tic;
 smo = smosvm(samples, targets);

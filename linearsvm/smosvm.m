@@ -4,7 +4,7 @@ global smo;
 smo = struct;
 % threshold or W_0
 smo.b = 0;
-smo.C = 100;
+smo.C = 50;
 % tolerance for KKT condition
 smo.tol = 0.001;
 % joint minimization parameter when eta is not negative
