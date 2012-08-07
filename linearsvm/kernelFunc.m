@@ -3,5 +3,5 @@ function k = kernelFunc(x1, x2)
 % k = x1' * x2;
 
 % radia
-k = exp(-10 * (x1-x2)'*(x1-x2));
+k = exp(-.05 * (x1-x2)'*(x1-x2));
 end
