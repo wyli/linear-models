@@ -14,4 +14,5 @@ Implemented
 
 <img src="http://github.com/wyli/linear-models/raw/master/neur.png">
 -    SVM (SMO algorithm) (with linear/RBF kernel)
+
 <img src="https://github.com/wyli/linear-models/raw/master/smo.png">
