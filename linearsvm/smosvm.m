@@ -4,7 +4,7 @@ global smo;
 smo = struct;
 % threshold or W_0
 smo.b = 0;
-smo.C = 1000;
+smo.C = 100;
 % tolerance for KKT condition
 smo.tol = 0.001;
 % joint minimization parameter when eta is not negative
@@ -214,11 +214,6 @@ else
 end
 end
 
-function flag = equal(a, b)
-% check if a == b
-% b must be a number and a must be a vector
-flag = (a < (b + eps)) & (a > (b - eps));
-end
 
 function flags = isBound(a, C)
 % check whether a is on bound, either 0 or C 
